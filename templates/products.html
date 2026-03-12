@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}Products — Blanks Store ERP{% endblock %}
+{% block page_title %}Products & Catalog{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Products -->
+  <div class="col-md-6">
+    <div class="erp-card">
+      <div class="erp-card-header"><span class="erp-card-title">Product Types</span></div>
+      <form method="POST" action="{{ url_for('products.add_product') }}" class="d-flex gap-2 mb-3">
+        <input type="text" name="name" class="erp-input" placeholder="Name (e.g. T-Shirt)" required>
+        <input type="text" name="category" class="erp-input" placeholder="Category" required>
+        <button class="erp-btn erp-btn-primary" style="white-space:nowrap">+ Add</button>
+      </form>
+      <table class="erp-table">
+        <thead><tr><th>Name</th><th>Category</th><th></th></tr></thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td>{{ p.name }}</td>
+            <td style="color:var(--text-muted)">{{ p.category }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <button class="erp-btn erp-btn-outline erp-btn-sm"
+                  data-bs-toggle="collapse" data-bs-target="#edit-product-{{ p.id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="POST" action="{{ url_for('products.delete_product', id=p.id) }}"
+                  onsubmit="return confirm('Delete product and all its variants?')">
+                  <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+              <div class="collapse mt-2" id="edit-product-{{ p.id }}">
+                <form method="POST" action="{{ url_for('products.edit_product', id=p.id) }}" class="d-flex gap-1">
+                  <input type="text" name="name" class="erp-input" value="{{ p.name }}" required>
+                  <input type="text" name="category" class="erp-input" value="{{ p.category }}">
+                  <button class="erp-btn erp-btn-primary erp-btn-sm">Save</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" style="color:var(--text-muted)">No products yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Brands -->
+  <div class="col-md-6">
+    <div class="erp-card">
+      <div class="erp-card-header"><span class="erp-card-title">Brands</span></div>
+      <form method="POST" action="{{ url_for('products.add_brand') }}" class="d-flex gap-2 mb-3">
+        <input type="text" name="name" class="erp-input" placeholder="Brand name" required>
+        <button class="erp-btn erp-btn-primary" style="white-space:nowrap">+ Add</button>
+      </form>
+      <table class="erp-table">
+        <thead><tr><th>Name</th><th></th></tr></thead>
+        <tbody>
+          {% for b in brands %}
+          <tr>
+            <td>{{ b.name }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <button class="erp-btn erp-btn-outline erp-btn-sm"
+                  data-bs-toggle="collapse" data-bs-target="#edit-brand-{{ b.id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="POST" action="{{ url_for('products.delete_brand', id=b.id) }}"
+                  onsubmit="return confirm('Delete brand?')">
+                  <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+              <div class="collapse mt-2" id="edit-brand-{{ b.id }}">
+                <form method="POST" action="{{ url_for('products.edit_brand', id=b.id) }}" class="d-flex gap-1">
+                  <input type="text" name="name" class="erp-input" value="{{ b.name }}" required>
+                  <button class="erp-btn erp-btn-primary erp-btn-sm">Save</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="2" style="color:var(--text-muted)">No brands yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Colors -->
+  <div class="col-md-6">
+    <div class="erp-card">
+      <div class="erp-card-header"><span class="erp-card-title">Colors</span></div>
+      <form method="POST" action="{{ url_for('products.add_color') }}" class="d-flex gap-2 mb-3">
+        <input type="text" name="name" class="erp-input" placeholder="Color name" required>
+        <button class="erp-btn erp-btn-primary" style="white-space:nowrap">+ Add</button>
+      </form>
+      <table class="erp-table">
+        <thead><tr><th>Name</th><th></th></tr></thead>
+        <tbody>
+          {% for c in colors %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <button class="erp-btn erp-btn-outline erp-btn-sm"
+                  data-bs-toggle="collapse" data-bs-target="#edit-color-{{ c.id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="POST" action="{{ url_for('products.delete_color', id=c.id) }}"
+                  onsubmit="return confirm('Delete color?')">
+                  <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+              <div class="collapse mt-2" id="edit-color-{{ c.id }}">
+                <form method="POST" action="{{ url_for('products.edit_color', id=c.id) }}" class="d-flex gap-1">
+                  <input type="text" name="name" class="erp-input" value="{{ c.name }}" required>
+                  <button class="erp-btn erp-btn-primary erp-btn-sm">Save</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="2" style="color:var(--text-muted)">No colors yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sizes -->
+  <div class="col-md-6">
+    <div class="erp-card">
+      <div class="erp-card-header"><span class="erp-card-title">Sizes</span></div>
+      <form method="POST" action="{{ url_for('products.add_size') }}" class="d-flex gap-2 mb-3">
+        <input type="text" name="name" class="erp-input" placeholder="Size (e.g. XL)" required>
+        <button class="erp-btn erp-btn-primary" style="white-space:nowrap">+ Add</button>
+      </form>
+      <table class="erp-table">
+        <thead><tr><th>Name</th><th></th></tr></thead>
+        <tbody>
+          {% for s in sizes %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <button class="erp-btn erp-btn-outline erp-btn-sm"
+                  data-bs-toggle="collapse" data-bs-target="#edit-size-{{ s.id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="POST" action="{{ url_for('products.delete_size', id=s.id) }}"
+                  onsubmit="return confirm('Delete size?')">
+                  <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+              <div class="collapse mt-2" id="edit-size-{{ s.id }}">
+                <form method="POST" action="{{ url_for('products.edit_size', id=s.id) }}" class="d-flex gap-1">
+                  <input type="text" name="name" class="erp-input" value="{{ s.name }}" required>
+                  <button class="erp-btn erp-btn-primary erp-btn-sm">Save</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="2" style="color:var(--text-muted)">No sizes yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

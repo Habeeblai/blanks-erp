@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Expenses — Blanks ERP{% endblock %}
+{% block page_title %}Expenses{% endblock %}
+
+{% block content %}
+
+<!-- Add Expense -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Record Expense</span>
+  </div>
+  <form method="POST" action="{{ url_for('expenses.add') }}">
+    <div class="row g-2">
+      <div class="col-md-2">
+        <label class="erp-label">Date</label>
+        <input type="date" name="date" class="erp-input" value="{{ today.isoformat() if today else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="erp-label">Category</label>
+        <select name="category" class="erp-select" required>
+          <option value="">-- Select --</option>
+          {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="erp-label">Description</label>
+        <input type="text" name="description" class="erp-input" placeholder="Description...">
+      </div>
+      <div class="col-md-2">
+        <label class="erp-label">Amount (₦)</label>
+        <input type="number" step="0.01" name="amount" class="erp-input" placeholder="0.00" required>
+      </div>
+      <div class="col-md-1 d-flex align-items-end">
+        <button class="erp-btn erp-btn-primary w-100">+ Add</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-3">
+  <form method="GET" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="erp-label">Category</label>
+      <select name="category" class="erp-select" style="width:160px">
+        <option value="">All</option>
+        {% for c in categories %}<option {% if c == category %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="erp-label">Month (YYYY-MM)</label>
+      <input type="month" name="month" class="erp-input" value="{{ month }}" style="width:160px">
+    </div>
+    <button class="erp-btn erp-btn-primary"><i class="bi bi-search"></i> Filter</button>
+    <a href="{{ url_for('expenses.index') }}" class="erp-btn erp-btn-outline">Clear</a>
+  </form>
+</div>
+
+<!-- Expenses Table -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Expenses ({{ pagination.total }})</span>
+    <span style="color:var(--danger); font-family:var(--font-mono)">
+      Page Total: ₦{{ "%.2f"|format(total) }}
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th class="num">Amount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td>{{ e.date.strftime('%d %b %Y') }}</td>
+          <td>
+            <span style="font-size:12px; background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:4px">
+              {{ e.category }}
+            </span>
+          </td>
+          <td style="color:var(--text-muted)">{{ e.description or '—' }}</td>
+          <td class="num" style="color:var(--danger)">₦{{ "%.2f"|format(e.amount) }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('expenses.delete', id=e.id) }}" onsubmit="return confirm('Delete expense?')">
+              <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="color:var(--text-muted); text-align:center; padding:24px">No expenses found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <div class="erp-pagination">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('expenses.index', page=pagination.prev_num, category=category, month=month) }}">‹ Prev</a>
+    {% endif %}
+    <span class="current">{{ pagination.page }} / {{ pagination.pages }}</span>
+    {% if pagination.has_next %}
+    <a href="{{ url_for('expenses.index', page=pagination.next_num, category=category, month=month) }}">Next ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

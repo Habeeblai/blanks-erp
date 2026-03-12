@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Inventory Grid — Blanks ERP{% endblock %}
+{% block page_title %}Inventory Grid View{% endblock %}
+
+{% block content %}
+
+<!-- View toggle -->
+<div class="d-flex gap-2 mb-3">
+  <a href="{{ url_for('inventory.index') }}" class="erp-btn erp-btn-outline">
+    <i class="bi bi-table"></i> Table View
+  </a>
+  <a href="{{ url_for('inventory.grid') }}" class="erp-btn erp-btn-primary">
+    <i class="bi bi-grid"></i> Grid View
+  </a>
+</div>
+
+<!-- Product/Brand selector -->
+<div class="erp-card mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="erp-label">Product</label>
+      <select name="product_id" class="erp-select" required>
+        <option value="">-- Select Product --</option>
+        {% for p in products %}<option value="{{ p.id }}" {% if product_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="erp-label">Brand</label>
+      <select name="brand_id" class="erp-select" required>
+        <option value="">-- Select Brand --</option>
+        {% for b in brands %}<option value="{{ b.id }}" {% if brand_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="erp-btn erp-btn-primary w-100"><i class="bi bi-grid"></i> Load Grid</button>
+    </div>
+  </form>
+</div>
+
+{% if grid_data %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">
+      Stock Grid
+      <span style="color:var(--accent); margin-left:8px">
+        {{ products|selectattr('id', 'equalto', product_id)|first|attr('name') }} /
+        {{ brands|selectattr('id', 'equalto', brand_id)|first|attr('name') }}
+      </span>
+    </span>
+    <span style="color:var(--text-muted); font-size:12px">Click any cell to edit quantity</span>
+  </div>
+  <div class="table-responsive">
+    <table class="inv-grid">
+      <thead>
+        <tr>
+          <th style="text-align:left">Color</th>
+          {% for size in grid_data.sizes %}
+          <th>{{ size.name }}</th>
+          {% endfor %}
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in grid_data.rows %}
+        <tr>
+          <td class="color-label">{{ row.color.name }}</td>
+          {% set row_total = namespace(val=0) %}
+          {% for cell in row.cells %}
+            {% if cell.inv %}
+              {% set row_total.val = row_total.val + cell.inv.quantity %}
+            {% endif %}
+            <td>
+              {% if cell.variant and cell.inv %}
+              <input
+                type="number"
+                class="grid-qty-input"
+                data-variant-id="{{ cell.variant.id }}"
+                value="{{ cell.inv.quantity }}"
+                min="0">
+              {% else %}
+              <span style="color:var(--border)">—</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td>
+            <span class="badge-stock {% if row_total.val > 20 %}ok{% elif row_total.val > 0 %}warn{% else %}low{% endif %}">
+              {{ row_total.val }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-3" style="color:var(--text-muted); font-size:12px; font-family:var(--font-mono)">
+    Changes auto-save on blur. Green = saved, Yellow = saving.
+  </p>
+</div>
+{% elif product_id and brand_id %}
+<div class="erp-card">
+  <p style="color:var(--text-muted)">No variants found for this product/brand combination. <a href="{{ url_for('products.variants') }}">Create variants first.</a></p>
+</div>
+{% else %}
+<div class="erp-card">
+  <p style="color:var(--text-muted)">Select a product and brand above to view the stock grid.</p>
+</div>
+{% endif %}
+
+{% endblock %}

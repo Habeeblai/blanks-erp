@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Record Sale — Blanks Store ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<div style="background:var(--surface); border-bottom:1px solid var(--border);
+  padding:14px 24px; display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:99;">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="color:var(--accent); font-size:22px;">◈</span>
+    <span style="font-family:var(--font-mono); font-size:13px; font-weight:700;">
+      BLANKS STORE <span style="color:var(--accent)">/ SALES</span>
+    </span>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span style="font-size:12px; color:var(--text-muted);">
+      <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
+    </span>
+    <a href="{{ url_for('auth.logout') }}" class="erp-btn erp-btn-outline erp-btn-sm">
+      <i class="bi bi-box-arrow-left"></i> Logout
+    </a>
+  </div>
+</div>
+
+<div style="max-width:700px; margin:32px auto; padding:0 16px;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mb-3">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="erp-card">
+    <div class="erp-card-header">
+      <span class="erp-card-title">
+        <i class="bi bi-cart3 me-2" style="color:var(--accent)"></i>Record New Sale
+      </span>
+    </div>
+
+    <form method="POST" action="{{ url_for('sales.new_sale') }}">
+      <div id="sale-items">
+        <div class="sale-row mb-3 p-3"
+          style="background:var(--surface-2); border-radius:var(--radius); border:1px solid var(--border)">
+          <div class="row g-2 align-items-end">
+            <div class="col-7">
+              <label class="erp-label">Variant</label>
+              <select name="variant_id[]" class="erp-select variant-select" required>
+                <option value="">-- Select Variant --</option>
+                {% for v in variants %}
+                <option value="{{ v.id }}">
+                  {{ v.sku }} — {{ v.product.name }} / {{ v.brand.name }} / {{ v.color.name }} / {{ v.size.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-3">
+              <label class="erp-label">Quantity</label>
+              <input type="number" name="quantity[]" class="erp-input" min="1" value="1" required>
+            </div>
+            <div class="col-2 d-flex align-items-end">
+              <button type="button" class="erp-btn erp-btn-danger erp-btn-sm remove-row w-100">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+          <div class="item-info mt-2" style="display:none"></div>
+        </div>
+      </div>
+
+      <button type="button" id="add-item" class="erp-btn erp-btn-outline mb-4">
+        <i class="bi bi-plus"></i> Add Item
+      </button>
+
+      <div class="mb-3">
+        <label class="erp-label">Notes (optional)</label>
+        <input type="text" name="notes" class="erp-input" placeholder="Customer name, order ref...">
+      </div>
+
+      <button type="submit" class="erp-btn erp-btn-primary w-100 justify-content-center">
+        <i class="bi bi-check-circle"></i> Record Sale
+      </button>
+    </form>
+  </div>
+
+  <p class="text-center mt-3" style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">
+    Recorded by <strong>{{ current_user.username }}</strong> — syncs to admin dashboard automatically.
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('.alert').forEach(el => {
+  setTimeout(() => bootstrap.Alert.getOrCreateInstance(el).close(), 4000);
+});
+
+const container = document.getElementById('sale-items');
+const template = container.querySelector('.sale-row');
+
+document.getElementById('add-item').addEventListener('click', () => {
+  const row = template.cloneNode(true);
+  row.querySelectorAll('select').forEach(el => el.value = '');
+  row.querySelectorAll('input[type=number]').forEach(el => el.value = '1');
+  row.querySelectorAll('.item-info').forEach(el => { el.style.display = 'none'; el.innerHTML = ''; });
+  container.appendChild(row);
+});
+
+container.addEventListener('click', e => {
+  if (e.target.closest('.remove-row')) {
+    if (document.querySelectorAll('.sale-row').length > 1)
+      e.target.closest('.sale-row').remove();
+  }
+});
+
+container.addEventListener('change', e => {
+  if (!e.target.classList.contains('variant-select')) return;
+  const vid = e.target.value;
+  const row = e.target.closest('.sale-row');
+  const info = row.querySelector('.item-info');
+  if (!vid) { info.style.display = 'none'; return; }
+
+  fetch(`/sales/api/variant_info/${vid}`)
+    .then(r => r.json())
+    .then(d => {
+      info.style.display = 'block';
+      info.innerHTML = `
+        <small style="color:var(--text-muted); font-family:var(--font-mono)">
+          Price: <span style="color:var(--accent)">₦${d.selling_price.toFixed(2)}</span>
+          &nbsp;|&nbsp; In Stock: <span style="color:var(--success)">${d.stock}</span>
+        </small>`;
+    });
+});
+</script>
+</body>
+</html>

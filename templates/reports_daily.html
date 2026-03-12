@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Daily Report — Blanks ERP{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="report-tabs">
+  <a href="{{ url_for('reports.daily') }}" class="report-tab active">Daily</a>
+  <a href="{{ url_for('reports.monthly') }}" class="report-tab">Monthly</a>
+  <a href="{{ url_for('reports.products') }}" class="report-tab">Product Profit</a>
+  <a href="{{ url_for('reports.fast_movers') }}" class="report-tab">Fast Movers</a>
+  <a href="{{ url_for('reports.restock') }}" class="report-tab">Restock</a>
+</div>
+
+<!-- Date picker -->
+<div class="erp-card mb-3">
+  <form method="GET" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="erp-label">Report Date</label>
+      <input type="date" name="date" class="erp-input" value="{{ report_date.isoformat() }}" style="width:180px">
+    </div>
+    <button class="erp-btn erp-btn-primary"><i class="bi bi-search"></i> View</button>
+  </form>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid mb-4">
+  <div class="kpi-tile">
+    <div class="kpi-label">Revenue</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(revenue) }}</div>
+    <div class="kpi-sub">{{ report_date.strftime('%d %B %Y') }}</div>
+  </div>
+  <div class="kpi-tile orange">
+    <div class="kpi-label">COGS</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(cogs) }}</div>
+    <div class="kpi-sub">Cost of goods sold</div>
+  </div>
+  <div class="kpi-tile green">
+    <div class="kpi-label">Gross Profit</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(profit) }}</div>
+    <div class="kpi-sub">Revenue − COGS</div>
+  </div>
+  <div class="kpi-tile">
+    <div class="kpi-label">Margin</div>
+    <div class="kpi-value">{{ "%.1f"|format((profit/revenue*100) if revenue > 0 else 0) }}%</div>
+    <div class="kpi-sub">Profit / Revenue</div>
+  </div>
+</div>
+
+<!-- Sale Details -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Sale Items — {{ report_date.strftime('%d %b %Y') }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Variant</th>
+          <th class="num">Qty</th>
+          <th class="num">Sell Price</th>
+          <th class="num">Revenue</th>
+          <th class="num">Profit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="sku">{{ row.Variant.sku }}</td>
+          <td>{{ row.Variant.display_name() }}</td>
+          <td class="num">{{ row.SaleItem.quantity }}</td>
+          <td class="num">₦{{ "%.2f"|format(row.SaleItem.selling_price_at_sale) }}</td>
+          <td class="num">₦{{ "%.2f"|format(row.SaleItem.selling_price_at_sale * row.SaleItem.quantity) }}</td>
+          <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(row.SaleItem.profit) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:24px">No sales on this date.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

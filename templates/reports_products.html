@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Product Profit — Blanks ERP{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="report-tabs">
+  <a href="{{ url_for('reports.daily') }}" class="report-tab">Daily</a>
+  <a href="{{ url_for('reports.monthly') }}" class="report-tab">Monthly</a>
+  <a href="{{ url_for('reports.products') }}" class="report-tab active">Product Profit</a>
+  <a href="{{ url_for('reports.fast_movers') }}" class="report-tab">Fast Movers</a>
+  <a href="{{ url_for('reports.restock') }}" class="report-tab">Restock</a>
+</div>
+
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Product Profit Report — All Time</span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Variant</th>
+          <th class="num">Units Sold</th>
+          <th class="num">Revenue</th>
+          <th class="num">Profit</th>
+          <th class="num">Margin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="sku">{{ row.Variant.sku }}</td>
+          <td>{{ row.Variant.display_name() }}</td>
+          <td class="num">{{ row.units_sold }}</td>
+          <td class="num">₦{{ "%.2f"|format(row.revenue) }}</td>
+          <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(row.profit) }}</td>
+          <td class="num">
+            {{ "%.1f"|format((row.profit / row.revenue * 100) if row.revenue else 0) }}%
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:24px">No sales data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

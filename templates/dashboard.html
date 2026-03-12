@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Blanks ERP{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Tiles -->
+<div class="kpi-grid">
+  <div class="kpi-tile">
+    <div class="kpi-label">Total Variants</div>
+    <div class="kpi-value">{{ "{:,}".format(total_variants) }}</div>
+    <div class="kpi-sub">SKUs in catalog</div>
+  </div>
+  <div class="kpi-tile blue">
+    <div class="kpi-label">Total Units</div>
+    <div class="kpi-value">{{ "{:,}".format(total_units) }}</div>
+    <div class="kpi-sub">Items in stock</div>
+  </div>
+  <div class="kpi-tile orange">
+    <div class="kpi-label">Inventory Worth</div>
+    <div class="kpi-value">₦{{ "{:,.2f}".format(inv_worth) }}</div>
+    <div class="kpi-sub">At cost price</div>
+  </div>
+  <div class="kpi-tile">
+    <div class="kpi-label">Sales Value</div>
+    <div class="kpi-value">₦{{ "{:,.2f}".format(sales_value) }}</div>
+    <div class="kpi-sub">Potential revenue</div>
+  </div>
+  <div class="kpi-tile green">
+    <div class="kpi-label">Potential Profit</div>
+    <div class="kpi-value">₦{{ "{:,.2f}".format(potential_profit) }}</div>
+    <div class="kpi-sub">If all stock sold</div>
+  </div>
+  <div class="kpi-tile green">
+    <div class="kpi-label">Today's Revenue</div>
+    <div class="kpi-value">₦{{ "{:,.2f}".format(today_revenue) }}</div>
+    <div class="kpi-sub">{{ today.strftime('%d %b %Y') }}</div>
+  </div>
+  <div class="kpi-tile {% if today_profit >= 0 %}green{% else %}red{% endif %}">
+    <div class="kpi-label">Today's Profit</div>
+    <div class="kpi-value">₦{{ "{:,.2f}".format(today_profit) }}</div>
+    <div class="kpi-sub">After cost of goods</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-auto">
+    <a href="{{ url_for('sales.new_sale') }}" class="erp-btn erp-btn-primary">
+      <i class="bi bi-plus-circle"></i> New Sale
+    </a>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('inventory.index') }}" class="erp-btn erp-btn-outline">
+      <i class="bi bi-archive"></i> Inventory
+    </a>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('reports.fast_movers') }}" class="erp-btn erp-btn-outline">
+      <i class="bi bi-fire"></i> Fast Movers
+    </a>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('reports.restock') }}" class="erp-btn erp-btn-outline">
+      <i class="bi bi-arrow-clockwise"></i> Restock
+    </a>
+  </div>
+</div>
+
+<!-- Low Stock Alerts -->
+{% if low_stock %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title"><i class="bi bi-exclamation-triangle me-2" style="color:var(--warning)"></i>Low Stock Alerts</span>
+    <span style="font-size:12px; color:var(--text-muted)">{{ low_stock|length }} variant(s) below 10 units</span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product</th>
+          <th>Brand</th>
+          <th>Color</th>
+          <th>Size</th>
+          <th class="num">Stock</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv, variant in low_stock %}
+        <tr>
+          <td class="sku">{{ variant.sku }}</td>
+          <td>{{ variant.product.name }}</td>
+          <td>{{ variant.brand.name }}</td>
+          <td>{{ variant.color.name }}</td>
+          <td>{{ variant.size.name }}</td>
+          <td class="num">
+            <span class="badge-stock {% if inv.quantity == 0 %}low{% else %}warn{% endif %}">
+              {{ inv.quantity }}
+            </span>
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('inventory.restock', variant_id=variant.id) }}" class="d-flex gap-2">
+              <input type="number" name="quantity" class="erp-input" style="width:70px" min="1" value="10">
+              <button class="erp-btn erp-btn-primary erp-btn-sm">Add</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="erp-card" style="border-color: rgba(61,214,140,0.3)">
+  <p style="color:var(--success); margin:0; font-size:13px;">
+    <i class="bi bi-check-circle me-2"></i>All variants have sufficient stock (≥ 10 units).
+  </p>
+</div>
+{% endif %}
+{% endblock %}

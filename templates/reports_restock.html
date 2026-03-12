@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Restock — Blanks ERP{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="report-tabs">
+  <a href="{{ url_for('reports.daily') }}" class="report-tab">Daily</a>
+  <a href="{{ url_for('reports.monthly') }}" class="report-tab">Monthly</a>
+  <a href="{{ url_for('reports.products') }}" class="report-tab">Product Profit</a>
+  <a href="{{ url_for('reports.fast_movers') }}" class="report-tab">Fast Movers</a>
+  <a href="{{ url_for('reports.restock') }}" class="report-tab active">Restock</a>
+</div>
+
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title"><i class="bi bi-arrow-clockwise me-2" style="color:var(--info)"></i>Restock Recommendations</span>
+    <span style="color:var(--text-muted); font-size:12px">Based on last 28 days sales velocity</span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Variant</th>
+          <th class="num">Current Stock</th>
+          <th class="num">Weekly Sales</th>
+          <th class="num">Suggested Restock</th>
+          <th>Quick Restock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in recommendations %}
+        <tr>
+          <td class="sku">{{ r.variant.sku }}</td>
+          <td>{{ r.variant.display_name() }}</td>
+          <td class="num">
+            <span class="badge-stock {% if r.current_stock > 10 %}ok{% elif r.current_stock > 0 %}warn{% else %}low{% endif %}">
+              {{ r.current_stock }}
+            </span>
+          </td>
+          <td class="num" style="color:var(--warning)">{{ r.weekly_sales }}</td>
+          <td class="num" style="color:var(--info); font-weight:600">{{ r.suggested_restock }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('inventory.restock', variant_id=r.variant.id) }}" class="d-flex gap-2">
+              <input type="number" name="quantity" class="erp-input" style="width:70px" min="1" value="{{ r.suggested_restock }}">
+              <button class="erp-btn erp-btn-primary erp-btn-sm">Add</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:24px">No restock recommendations at this time.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

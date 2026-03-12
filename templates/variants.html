@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}Variants — Blanks Store ERP{% endblock %}
+{% block page_title %}Variants{% endblock %}
+
+{% block content %}
+
+<!-- Add Variant -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Add Single Variant</span>
+  </div>
+  <form method="POST" action="{{ url_for('products.add_variant') }}">
+    <div class="row g-2">
+      <div class="col-md-2">
+        <label class="erp-label">Product</label>
+        <select name="product_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for p in products %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="erp-label">Brand</label>
+        <select name="brand_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for b in brands %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="erp-label">Color</label>
+        <select name="color_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for c in colors %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="erp-label">Size</label>
+        <select name="size_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for s in sizes %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="erp-label">Cost (₦)</label>
+        <input type="number" name="cost_price" class="erp-input" step="0.01" min="0" value="0">
+      </div>
+      <div class="col-md-1">
+        <label class="erp-label">Sell (₦)</label>
+        <input type="number" name="selling_price" class="erp-input" step="0.01" min="0" value="0">
+      </div>
+      <div class="col-md-1">
+        <label class="erp-label">Qty</label>
+        <input type="number" name="quantity" class="erp-input" min="0" value="0">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="erp-btn erp-btn-primary w-100">+ Add</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Bulk Add -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Bulk Create — All Sizes at Once</span>
+  </div>
+  <form method="POST" action="{{ url_for('products.bulk_add_variants') }}">
+    <div class="row g-2">
+      <div class="col-md-3">
+        <label class="erp-label">Product</label>
+        <select name="product_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for p in products %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="erp-label">Brand</label>
+        <select name="brand_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for b in brands %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="erp-label">Color</label>
+        <select name="color_id" class="erp-select" required>
+          <option value="">Select</option>
+          {% for c in colors %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="erp-label">Cost (₦)</label>
+        <input type="number" name="cost_price" class="erp-input" step="0.01" min="0" value="0">
+      </div>
+      <div class="col-md-1">
+        <label class="erp-label">Sell (₦)</label>
+        <input type="number" name="selling_price" class="erp-input" step="0.01" min="0" value="0">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="erp-btn erp-btn-primary w-100">+ Bulk Create</button>
+      </div>
+    </div>
+    <p class="mt-2 mb-0" style="font-size:12px; color:var(--text-muted)">
+      Creates one variant per size ({{ sizes|length }} sizes). Already existing variants are skipped.
+    </p>
+  </form>
+</div>
+
+<!-- Search -->
+<div class="erp-card mb-4">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <input type="text" name="q" class="erp-input" value="{{ q }}" placeholder="Search SKU...">
+    </div>
+    <div class="col-md-3">
+      <select name="product_id" class="erp-select">
+        <option value="">All Products</option>
+        {% for p in products %}<option value="{{ p.id }}" {% if product_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="brand_id" class="erp-select">
+        <option value="">All Brands</option>
+        {% for b in brands %}<option value="{{ b.id }}" {% if brand_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="erp-btn erp-btn-primary w-100">Filter</button>
+    </div>
+  </form>
+</div>
+
+<!-- Variants Table -->
+<div class="erp-card">
+  <table class="erp-table">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Product</th>
+        <th>Brand</th>
+        <th>Color</th>
+        <th>Size</th>
+        <th>Sell Price</th>
+        <th>Total Stock</th>
+        <th>Batches</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in variants.items %}
+      <tr>
+        <td style="font-family:var(--font-mono); font-size:12px">{{ v.sku }}</td>
+        <td>{{ v.product.name }}</td>
+        <td>{{ v.brand.name }}</td>
+        <td>{{ v.color.name }}</td>
+        <td>{{ v.size.name }}</td>
+        <td>₦{{ "%.2f"|format(v.selling_price|float) }}</td>
+        <td>
+          {% set stock = v.total_stock() %}
+          <span style="font-weight:600; color:{% if stock == 0 %}var(--danger){% elif stock <= 5 %}var(--warning){% else %}var(--success){% endif %}">
+            {{ stock }}
+          </span>
+        </td>
+        <td>
+          <a href="{{ url_for('inventory.batches', variant_id=v.id) }}"
+             style="font-size:12px; color:var(--accent)">
+            {{ v.batches.count() }} batch{{ 'es' if v.batches.count() != 1 else '' }}
+          </a>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <button class="erp-btn erp-btn-outline erp-btn-sm"
+              data-bs-toggle="collapse" data-bs-target="#edit-v-{{ v.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form method="POST" action="{{ url_for('products.delete_variant', id=v.id) }}"
+              onsubmit="return confirm('Delete variant {{ v.sku }}?')">
+              <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+          <div class="collapse mt-2" id="edit-v-{{ v.id }}">
+            <form method="POST" action="{{ url_for('products.edit_variant', id=v.id) }}"
+              class="d-flex gap-1">
+              <div>
+                <label class="erp-label" style="font-size:10px">Sell Price</label>
+                <input type="number" name="selling_price" class="erp-input"
+                  value="{{ v.selling_price|float }}" step="0.01" style="width:100px">
+              </div>
+              <div class="d-flex align-items-end">
+                <button class="erp-btn erp-btn-primary erp-btn-sm">Save</button>
+              </div>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:32px">
+        No variants found.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if variants.pages > 1 %}
+  <div class="d-flex justify-content-center gap-2 mt-3">
+    {% if variants.has_prev %}
+    <a href="{{ url_for('products.variants', page=variants.prev_num, q=q, product_id=product_id, brand_id=brand_id) }}"
+       class="erp-btn erp-btn-outline erp-btn-sm">← Prev</a>
+    {% endif %}
+    <span style="padding:6px 12px; color:var(--text-muted); font-size:13px">
+      Page {{ variants.page }} / {{ variants.pages }}
+    </span>
+    {% if variants.has_next %}
+    <a href="{{ url_for('products.variants', page=variants.next_num, q=q, product_id=product_id, brand_id=brand_id) }}"
+       class="erp-btn erp-btn-outline erp-btn-sm">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

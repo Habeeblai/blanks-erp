@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}Batches — {{ variant.sku }}{% endblock %}
+{% block page_title %}Stock Batches — {{ variant.sku }}{% endblock %}
+
+{% block content %}
+
+<!-- Variant summary -->
+<div class="erp-card mb-4">
+  <div class="row g-3">
+    <div class="col-md-8">
+      <div style="font-size:13px; color:var(--text-muted); margin-bottom:4px">Variant</div>
+      <div style="font-weight:600; font-size:16px">{{ variant.display_name() }}</div>
+      <div style="font-family:var(--font-mono); font-size:12px; color:var(--accent); margin-top:4px">
+        {{ variant.sku }}
+      </div>
+    </div>
+    <div class="col-md-4 text-md-end">
+      <div style="font-size:13px; color:var(--text-muted)">Total Stock</div>
+      <div style="font-size:28px; font-weight:700; color:var(--accent)">
+        {{ variant.total_stock() }}
+        <span style="font-size:14px; color:var(--text-muted)">units</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Batches table -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <span class="erp-card-title">
+      <i class="bi bi-layers me-2" style="color:var(--accent)"></i>
+      Stock Batches ({{ batches|length }})
+    </span>
+  </div>
+
+  <table class="erp-table">
+    <thead>
+      <tr>
+        <th>Batch</th>
+        <th>Date Added</th>
+        <th>Cost Price</th>
+        <th>Selling Price</th>
+        <th>Quantity</th>
+        <th>Batch Value</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for batch in batches %}
+      <tr>
+        <td>
+          <span style="font-family:var(--font-mono); font-size:12px;
+            background:rgba(99,102,241,0.1); color:var(--accent);
+            padding:2px 8px; border-radius:4px;">
+            #{{ batch.batch_number }}
+          </span>
+          {% if loop.first and batch.quantity > 0 %}
+          <span style="font-size:10px; color:var(--success); margin-left:4px">FIFO NEXT</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:var(--text-muted)">
+          {{ batch.date_added.strftime('%d %b %Y') }}
+        </td>
+        <td>₦{{ "%.2f"|format(batch.cost_price|float) }}</td>
+        <td>₦{{ "%.2f"|format(batch.selling_price|float) }}</td>
+        <td>
+          <span style="font-weight:600; color:{% if batch.quantity == 0 %}var(--danger){% elif batch.quantity <= 5 %}var(--warning){% else %}var(--success){% endif %}">
+            {{ batch.quantity }}
+          </span>
+        </td>
+        <td>₦{{ "%.2f"|format(batch.stock_value()) }}</td>
+        <td style="font-size:12px; color:var(--text-muted)">{{ batch.notes or '—' }}</td>
+        <td>
+          <div class="d-flex gap-1">
+            <button class="erp-btn erp-btn-outline erp-btn-sm"
+              data-bs-toggle="collapse" data-bs-target="#adjust-{{ batch.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form method="POST" action="{{ url_for('inventory.delete_batch', batch_id=batch.id) }}"
+              onsubmit="return confirm('Delete this batch?')">
+              <button class="erp-btn erp-btn-danger erp-btn-sm">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+          <div class="collapse mt-2" id="adjust-{{ batch.id }}">
+            <form method="POST" action="{{ url_for('inventory.adjust_batch', batch_id=batch.id) }}"
+              class="d-flex gap-1">
+              <input type="number" name="quantity" class="erp-input"
+                value="{{ batch.quantity }}" min="0" style="width:80px">
+              <button class="erp-btn erp-btn-primary erp-btn-sm">Save</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px">
+          No batches yet. Add stock via the Restock button on the Inventory page.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if batches %}
+  <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);
+    display:flex; justify-content:flex-end; gap:32px">
+    <div style="text-align:right">
+      <div style="font-size:12px; color:var(--text-muted)">Total Stock Value (Cost)</div>
+      <div style="font-size:18px; font-weight:700">
+        ₦{{ "%.2f"|format(variant.total_stock_value()) }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add new batch -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">
+      <i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>
+      Add New Batch (Restock)
+    </span>
+  </div>
+  <form method="POST" action="{{ url_for('inventory.restock', variant_id=variant.id) }}">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="erp-label">Quantity *</label>
+        <input type="number" name="quantity" class="erp-input" min="1" required>
+      </div>
+      <div class="col-md-3">
+        <label class="erp-label">Cost Price (₦) *</label>
+        <input type="number" name="cost_price" class="erp-input" step="0.01" min="0.01" required>
+      </div>
+      <div class="col-md-3">
+        <label class="erp-label">Selling Price (₦)</label>
+        <input type="number" name="selling_price" class="erp-input" step="0.01"
+          value="{{ variant.selling_price|float }}">
+      </div>
+      <div class="col-md-3">
+        <label class="erp-label">Notes</label>
+        <input type="text" name="notes" class="erp-input" placeholder="e.g. Restock Jan 2025">
+      </div>
+      <div class="col-12">
+        <button class="erp-btn erp-btn-primary">
+          <i class="bi bi-plus-circle"></i> Add Batch
+        </button>
+        <a href="{{ url_for('inventory.index') }}" class="erp-btn erp-btn-outline ms-2">
+          ← Back to Inventory
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}New Sale — Blanks ERP{% endblock %}
+{% block page_title %}Record New Sale{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">New Sale Transaction</span>
+  </div>
+
+  <form method="POST" action="{{ url_for('sales.new_sale') }}">
+
+    <!-- Sale items container -->
+    <div id="sale-items">
+      <div class="sale-row mb-3 p-3" style="background:var(--surface-2); border-radius:var(--radius); border:1px solid var(--border)">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-7">
+            <label class="erp-label">Variant (SKU)</label>
+            <select name="variant_id[]" class="erp-select variant-select" required>
+              <option value="">-- Select Variant --</option>
+              {% for v in variants %}
+              <option value="{{ v.id }}">{{ v.sku }} — {{ v.product.name }} / {{ v.brand.name }} / {{ v.color.name }} / {{ v.size.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="erp-label">Quantity</label>
+            <input type="number" name="quantity[]" class="erp-input" min="1" value="1" required>
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="erp-btn erp-btn-danger remove-row w-100">
+              <i class="bi bi-x"></i> Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+      <button type="button" id="add-sale-item" class="erp-btn erp-btn-outline">
+        <i class="bi bi-plus"></i> Add Item
+      </button>
+    </div>
+
+    <div class="mb-3">
+      <label class="erp-label">Notes (optional)</label>
+      <input type="text" name="notes" class="erp-input" placeholder="Customer name, order ref...">
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="erp-btn erp-btn-primary">
+        <i class="bi bi-check-circle"></i> Record Sale
+      </button>
+      <a href="{{ url_for('sales.index') }}" class="erp-btn erp-btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

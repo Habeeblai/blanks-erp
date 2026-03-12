@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Sales — Blanks ERP{% endblock %}
+{% block page_title %}Sales History{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-3">
+  <a href="{{ url_for('sales.new_sale') }}" class="erp-btn erp-btn-primary">
+    <i class="bi bi-plus-circle"></i> New Sale
+  </a>
+</div>
+
+<!-- Date filter -->
+<div class="erp-card mb-3">
+  <form method="GET" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="erp-label">Filter by Date</label>
+      <input type="date" name="date" class="erp-input" value="{{ date_filter }}" style="width:180px">
+    </div>
+    <button class="erp-btn erp-btn-primary"><i class="bi bi-search"></i> Filter</button>
+    <a href="{{ url_for('sales.index') }}" class="erp-btn erp-btn-outline">Clear</a>
+  </form>
+</div>
+
+<!-- Sales Table -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Sales ({{ pagination.total }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Items</th>
+          <th class="num">Revenue</th>
+          <th class="num">Profit</th>
+          <th>Recorded By</th>
+          <th>Notes</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sale in sales %}
+        <tr>
+          <td class="sku">#{{ sale.id }}</td>
+          <td>{{ sale.date.strftime('%d %b %Y %H:%M') }}</td>
+          <td>
+            {% for item in sale.items %}
+            <div style="font-size:12px; color:var(--text-muted)">
+              {{ item.variant.sku if item.variant else '—' }} × {{ item.quantity }}
+            </div>
+            {% endfor %}
+          </td>
+          <td class="num">₦{{ "%.2f"|format(sale.total_revenue()) }}</td>
+          <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(sale.total_profit()) }}</td>
+          <td style="color:var(--text-muted); font-size:12px">{{ sale.recorded_by or 'admin' }}</td>
+          <td style="color:var(--text-muted); font-size:12px">{{ sale.notes or '—' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('sales.delete_sale', id=sale.id) }}" onsubmit="return confirm('Delete sale and restore stock?')">
+              <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="color:var(--text-muted); text-align:center; padding:24px">No sales found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <div class="erp-pagination">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('sales.index', page=pagination.prev_num, date=date_filter) }}">‹ Prev</a>
+    {% endif %}
+    <span class="current">{{ pagination.page }} / {{ pagination.pages }}</span>
+    {% if pagination.has_next %}
+    <a href="{{ url_for('sales.index', page=pagination.next_num, date=date_filter) }}">Next ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Fast Movers — Blanks ERP{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="report-tabs">
+  <a href="{{ url_for('reports.daily') }}" class="report-tab">Daily</a>
+  <a href="{{ url_for('reports.monthly') }}" class="report-tab">Monthly</a>
+  <a href="{{ url_for('reports.products') }}" class="report-tab">Product Profit</a>
+  <a href="{{ url_for('reports.fast_movers') }}" class="report-tab active">Fast Movers</a>
+  <a href="{{ url_for('reports.restock') }}" class="report-tab">Restock</a>
+</div>
+
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title"><i class="bi bi-fire me-2" style="color:var(--warning)"></i>Top 10 Fast-Moving Variants — Last 30 Days</span>
+  </div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SKU</th>
+          <th>Variant</th>
+          <th class="num">Units Sold</th>
+          <th class="num">Profit</th>
+          <th class="num">Current Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set i = loop.index0 %}
+        <tr>
+          <td style="color:var(--accent); font-family:var(--font-mono)">{{ loop.index }}</td>
+          <td class="sku">{{ row.Variant.sku }}</td>
+          <td>{{ row.Variant.display_name() }}</td>
+          <td class="num" style="color:var(--warning); font-weight:600">{{ row.units_sold }}</td>
+          <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(row.profit) }}</td>
+          <td class="num">
+            <span class="badge-stock {% if row.Variant.inventory and row.Variant.inventory.quantity > 10 %}ok{% elif row.Variant.inventory and row.Variant.inventory.quantity > 0 %}warn{% else %}low{% endif %}">
+              {{ row.Variant.inventory.quantity if row.Variant.inventory else 0 }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:24px">No sales in the last 30 days.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

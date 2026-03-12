@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Inventory — Blanks Store ERP{% endblock %}
+{% block page_title %}Inventory{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <a href="{{ url_for('inventory.grid') }}" class="erp-btn erp-btn-outline">
+    <i class="bi bi-grid-3x3-gap"></i> Grid View
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-4">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="erp-label">Search SKU</label>
+      <input type="text" name="q" class="erp-input" value="{{ filters.q }}" placeholder="Search...">
+    </div>
+    <div class="col-md-2">
+      <label class="erp-label">Product</label>
+      <select name="product_id" class="erp-select">
+        <option value="">All</option>
+        {% for p in products %}<option value="{{ p.id }}" {% if filters.product_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="erp-label">Brand</label>
+      <select name="brand_id" class="erp-select">
+        <option value="">All</option>
+        {% for b in brands %}<option value="{{ b.id }}" {% if filters.brand_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="erp-label">Color</label>
+      <select name="color_id" class="erp-select">
+        <option value="">All</option>
+        {% for c in colors %}<option value="{{ c.id }}" {% if filters.color_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <label class="erp-label">Size</label>
+      <select name="size_id" class="erp-select">
+        <option value="">All</option>
+        {% for s in sizes %}<option value="{{ s.id }}" {% if filters.size_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="erp-btn erp-btn-primary w-100">Filter</button>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="erp-card">
+  <table class="erp-table">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Product</th>
+        <th>Brand</th>
+        <th>Color</th>
+        <th>Size</th>
+        <th>Sell Price</th>
+        <th>Total Stock</th>
+        <th>Batches</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in variants %}
+      <tr>
+        <td style="font-family:var(--font-mono); font-size:12px">{{ v.sku }}</td>
+        <td>{{ v.product.name }}</td>
+        <td>{{ v.brand.name }}</td>
+        <td>{{ v.color.name }}</td>
+        <td>{{ v.size.name }}</td>
+        <td>₦{{ "%.2f"|format(v.selling_price|float) }}</td>
+        <td>
+          {% set stock = v.total_stock() %}
+          <span style="color: {% if stock == 0 %}var(--danger){% elif stock <= 5 %}var(--warning){% else %}var(--success){% endif %}; font-weight:600">
+            {{ stock }}
+          </span>
+        </td>
+        <td>
+          <span style="font-size:12px; color:var(--text-muted)">
+            {{ v.batches.count() }} batch{{ 'es' if v.batches.count() != 1 else '' }}
+          </span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('inventory.batches', variant_id=v.id) }}"
+               class="erp-btn erp-btn-outline erp-btn-sm">
+              <i class="bi bi-layers"></i> Batches
+            </a>
+            <button class="erp-btn erp-btn-primary erp-btn-sm"
+              data-bs-toggle="collapse" data-bs-target="#restock-{{ v.id }}">
+              <i class="bi bi-plus-circle"></i> Restock
+            </button>
+          </div>
+          <!-- Restock form -->
+          <div class="collapse mt-2" id="restock-{{ v.id }}">
+            <form method="POST" action="{{ url_for('inventory.restock', variant_id=v.id) }}"
+              style="background:var(--surface-2); padding:12px; border-radius:var(--radius); border:1px solid var(--border)">
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="erp-label">Qty</label>
+                  <input type="number" name="quantity" class="erp-input" min="1" required>
+                </div>
+                <div class="col-6">
+                  <label class="erp-label">Cost Price (₦)</label>
+                  <input type="number" name="cost_price" class="erp-input" step="0.01" min="0.01" required>
+                </div>
+                <div class="col-6">
+                  <label class="erp-label">Selling Price (₦)</label>
+                  <input type="number" name="selling_price" class="erp-input" step="0.01"
+                    value="{{ v.selling_price|float }}">
+                </div>
+                <div class="col-6">
+                  <label class="erp-label">Notes (optional)</label>
+                  <input type="text" name="notes" class="erp-input" placeholder="e.g. New shipment">
+                </div>
+                <div class="col-12">
+                  <button class="erp-btn erp-btn-primary erp-btn-sm w-100">
+                    <i class="bi bi-check"></i> Add Batch
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="color:var(--text-muted); text-align:center; padding:32px">
+        No variants found.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div class="d-flex justify-content-center gap-2 mt-3">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('inventory.index', page=pagination.prev_num, **filters) }}"
+       class="erp-btn erp-btn-outline erp-btn-sm">← Prev</a>
+    {% endif %}
+    <span style="padding:6px 12px; color:var(--text-muted); font-size:13px">
+      Page {{ pagination.page }} / {{ pagination.pages }}
+    </span>
+    {% if pagination.has_next %}
+    <a href="{{ url_for('inventory.index', page=pagination.next_num, **filters) }}"
+       class="erp-btn erp-btn-outline erp-btn-sm">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

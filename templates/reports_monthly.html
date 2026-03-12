@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Report — Blanks ERP{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="report-tabs">
+  <a href="{{ url_for('reports.daily') }}" class="report-tab">Daily</a>
+  <a href="{{ url_for('reports.monthly') }}" class="report-tab active">Monthly</a>
+  <a href="{{ url_for('reports.products') }}" class="report-tab">Product Profit</a>
+  <a href="{{ url_for('reports.fast_movers') }}" class="report-tab">Fast Movers</a>
+  <a href="{{ url_for('reports.restock') }}" class="report-tab">Restock</a>
+</div>
+
+<!-- Month selector -->
+{% set months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] %}
+<div class="erp-card mb-3">
+  <form method="GET" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="erp-label">Year</label>
+      <input type="number" name="year" class="erp-input" value="{{ year }}" style="width:90px" min="2020" max="2099">
+    </div>
+    <div>
+      <label class="erp-label">Month</label>
+      <select name="month" class="erp-select" style="width:120px">
+        {% for i in range(1,13) %}
+        <option value="{{ i }}" {% if i == month %}selected{% endif %}>{{ months[i-1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="erp-btn erp-btn-primary"><i class="bi bi-search"></i> View</button>
+  </form>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid mb-4">
+  <div class="kpi-tile">
+    <div class="kpi-label">Revenue</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(revenue) }}</div>
+    <div class="kpi-sub">{{ months[month-1] }} {{ year }}</div>
+  </div>
+  <div class="kpi-tile orange">
+    <div class="kpi-label">COGS</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(cogs) }}</div>
+    <div class="kpi-sub">Cost of goods sold</div>
+  </div>
+  <div class="kpi-tile green">
+    <div class="kpi-label">Gross Profit</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(gross_profit) }}</div>
+    <div class="kpi-sub">Revenue − COGS</div>
+  </div>
+  <div class="kpi-tile red">
+    <div class="kpi-label">Expenses</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(total_expenses) }}</div>
+    <div class="kpi-sub">Operating costs</div>
+  </div>
+  <div class="kpi-tile {% if net_profit >= 0 %}green{% else %}red{% endif %}">
+    <div class="kpi-label">Net Profit</div>
+    <div class="kpi-value">₦{{ "%.2f"|format(net_profit) }}</div>
+    <div class="kpi-sub">Gross − Expenses</div>
+  </div>
+</div>
+
+<!-- Expense breakdown -->
+{% if expenses %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <span class="erp-card-title">Expenses — {{ months[month-1] }} {{ year }}</span>
+  </div>
+  <table class="erp-table">
+    <thead>
+      <tr><th>Date</th><th>Category</th><th>Description</th><th class="num">Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for e in expenses %}
+      <tr>
+        <td>{{ e.date.strftime('%d %b') }}</td>
+        <td>{{ e.category }}</td>
+        <td style="color:var(--text-muted)">{{ e.description or '—' }}</td>
+        <td class="num" style="color:var(--danger)">₦{{ "%.2f"|format(e.amount) }}</td>
+      </tr>
+      {% endfor %}
+      <tr style="background:var(--surface-2)">
+        <td colspan="3" style="font-weight:600">Total Expenses</td>
+        <td class="num" style="color:var(--danger); font-weight:600">₦{{ "%.2f"|format(total_expenses) }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
