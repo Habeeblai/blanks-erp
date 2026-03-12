@@ -48,6 +48,7 @@ def create_app(config_name=None):
 
     with app.app_context():
         db.create_all()
+        _migrate_existing_db()
         _seed_defaults()
 
     return app
@@ -56,6 +57,37 @@ def create_app(config_name=None):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+def _migrate_existing_db():
+    """Add new columns to existing tables if they don't exist yet."""
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+
+    # Add role column to users if missing
+    existing_cols = [c['name'] for c in inspector.get_columns('users')]
+    if 'role' not in existing_cols:
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin'"))
+            conn.commit()
+
+    # Add recorded_by and user_id to sales if missing
+    if inspector.has_table('sales'):
+        sale_cols = [c['name'] for c in inspector.get_columns('sales')]
+        with db.engine.connect() as conn:
+            if 'recorded_by' not in sale_cols:
+                conn.execute(text("ALTER TABLE sales ADD COLUMN recorded_by VARCHAR(80)"))
+            if 'user_id' not in sale_cols:
+                conn.execute(text("ALTER TABLE sales ADD COLUMN user_id INTEGER"))
+            conn.commit()
+
+    # Add batch_id to sale_items if missing
+    if inspector.has_table('sale_items'):
+        si_cols = [c['name'] for c in inspector.get_columns('sale_items')]
+        if 'batch_id' not in si_cols:
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE sale_items ADD COLUMN batch_id INTEGER"))
+                conn.commit()
 
 
 def _seed_defaults():
