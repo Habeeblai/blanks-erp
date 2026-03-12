@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard — Blanks ERP{% endblock %}
+{% block title %}Dashboard — Blanks Store ERP{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
@@ -70,51 +70,51 @@
 {% if low_stock %}
 <div class="erp-card">
   <div class="erp-card-header">
-    <span class="erp-card-title"><i class="bi bi-exclamation-triangle me-2" style="color:var(--warning)"></i>Low Stock Alerts</span>
-    <span style="font-size:12px; color:var(--text-muted)">{{ low_stock|length }} variant(s) below 10 units</span>
+    <span class="erp-card-title">
+      <i class="bi bi-exclamation-triangle me-2" style="color:var(--warning)"></i>Low Stock Alerts
+    </span>
+    <span style="font-size:12px; color:var(--text-muted)">{{ low_stock|length }} variant(s) at 10 units or below</span>
   </div>
-  <div class="table-responsive">
-    <table class="erp-table">
-      <thead>
-        <tr>
-          <th>SKU</th>
-          <th>Product</th>
-          <th>Brand</th>
-          <th>Color</th>
-          <th>Size</th>
-          <th class="num">Stock</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for inv, variant in low_stock %}
-        <tr>
-          <td class="sku">{{ variant.sku }}</td>
-          <td>{{ variant.product.name }}</td>
-          <td>{{ variant.brand.name }}</td>
-          <td>{{ variant.color.name }}</td>
-          <td>{{ variant.size.name }}</td>
-          <td class="num">
-            <span class="badge-stock {% if inv.quantity == 0 %}low{% else %}warn{% endif %}">
-              {{ inv.quantity }}
-            </span>
-          </td>
-          <td>
-            <form method="POST" action="{{ url_for('inventory.restock', variant_id=variant.id) }}" class="d-flex gap-2">
-              <input type="number" name="quantity" class="erp-input" style="width:70px" min="1" value="10">
-              <button class="erp-btn erp-btn-primary erp-btn-sm">Add</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <table class="erp-table">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Product</th>
+        <th>Brand</th>
+        <th>Color</th>
+        <th>Size</th>
+        <th>Stock</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v, stock in low_stock %}
+      <tr>
+        <td style="font-family:var(--font-mono); font-size:12px">{{ v.sku }}</td>
+        <td>{{ v.product.name }}</td>
+        <td>{{ v.brand.name }}</td>
+        <td>{{ v.color.name }}</td>
+        <td>{{ v.size.name }}</td>
+        <td>
+          <span style="font-weight:600; color:{% if stock == 0 %}var(--danger){% else %}var(--warning){% endif %}">
+            {{ stock }}
+          </span>
+        </td>
+        <td>
+          <a href="{{ url_for('inventory.batches', variant_id=v.id) }}"
+             class="erp-btn erp-btn-primary erp-btn-sm">
+            <i class="bi bi-plus-circle"></i> Restock
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% else %}
 <div class="erp-card" style="border-color: rgba(61,214,140,0.3)">
   <p style="color:var(--success); margin:0; font-size:13px;">
-    <i class="bi bi-check-circle me-2"></i>All variants have sufficient stock (≥ 10 units).
+    <i class="bi bi-check-circle me-2"></i>All variants have sufficient stock.
   </p>
 </div>
 {% endif %}

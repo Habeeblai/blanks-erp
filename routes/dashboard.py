@@ -16,39 +16,41 @@ dashboard_bp = Blueprint('dashboard', __name__)
 def index():
     today = date.today()
 
-    # Total inventory value at cost
-    inventory_worth = db.session.query(
+    # Total variants
+    total_variants = Variant.query.count()
+
+    # Total units in stock
+    total_units = db.session.query(func.sum(InventoryBatch.quantity)).scalar() or 0
+
+    # Inventory worth at cost
+    inv_worth = db.session.query(
         func.sum(InventoryBatch.quantity * InventoryBatch.cost_price)
     ).scalar() or 0
 
-    # Potential revenue (sell all stock at selling price)
-    potential_revenue = db.session.query(
+    # Potential revenue if all sold
+    sales_value = db.session.query(
         func.sum(InventoryBatch.quantity * InventoryBatch.selling_price)
     ).scalar() or 0
 
-    potential_profit = float(potential_revenue) - float(inventory_worth)
+    potential_profit = float(sales_value) - float(inv_worth)
 
     # Today's revenue and profit
-    today_sales = Sale.query.filter(
-        func.date(Sale.date) == today
-    ).all()
-
+    today_sales = Sale.query.filter(func.date(Sale.date) == today).all()
     today_revenue = sum(s.total_revenue() for s in today_sales)
     today_profit = sum(s.total_profit() for s in today_sales)
 
-    # Low stock variants (total stock <= 5 across all batches)
+    # Low stock variants (total stock <= 10)
     all_variants = Variant.query.all()
-    low_stock = [v for v in all_variants if 0 < v.total_stock() <= 5]
-    out_of_stock = [v for v in all_variants if v.total_stock() == 0]
-
-    # Recent sales
-    recent_sales = Sale.query.order_by(Sale.date.desc()).limit(5).all()
+    low_stock = [(v, v.total_stock()) for v in all_variants if 0 < v.total_stock() <= 10]
+    low_stock.sort(key=lambda x: x[1])
 
     return render_template('dashboard.html',
-                           inventory_worth=inventory_worth,
+                           today=today,
+                           total_variants=total_variants,
+                           total_units=int(total_units),
+                           inv_worth=float(inv_worth),
+                           sales_value=float(sales_value),
                            potential_profit=potential_profit,
                            today_revenue=today_revenue,
                            today_profit=today_profit,
-                           low_stock=low_stock,
-                           out_of_stock=out_of_stock,
-                           recent_sales=recent_sales)
+                           low_stock=low_stock)
