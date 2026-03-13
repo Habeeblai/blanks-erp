@@ -26,18 +26,27 @@ def daily():
 
     expenses = Expense.query.filter_by(date=report_date).all()
     total_expenses = sum(float(e.amount) for e in expenses)
-    total_revenue = sum(s.total_revenue() for s in sales)
-    total_profit = sum(s.total_profit() for s in sales)
-    net_profit = total_profit - total_expenses
+    revenue = sum(s.total_revenue() for s in sales)
+    profit = sum(s.total_profit() for s in sales)
+    cogs = revenue - profit
+    net_profit = profit - total_expenses
+
+    # Build rows for the template
+    rows = []
+    for sale in sales:
+        for item in sale.items:
+            rows.append({'SaleItem': item, 'Variant': item.variant})
 
     return render_template('reports_daily.html',
                            report_date=report_date,
                            sales=sales,
                            expenses=expenses,
-                           total_revenue=total_revenue,
-                           total_profit=total_profit,
+                           revenue=revenue,
+                           cogs=cogs,
+                           profit=profit,
                            total_expenses=total_expenses,
-                           net_profit=net_profit)
+                           net_profit=net_profit,
+                           rows=rows)
 
 
 @reports_bp.route('/monthly')
@@ -62,10 +71,11 @@ def monthly():
         Expense.date >= start, Expense.date < end
     ).all()
 
-    total_revenue = sum(s.total_revenue() for s in sales)
-    total_profit = sum(s.total_profit() for s in sales)
+    revenue = sum(s.total_revenue() for s in sales)
+    gross_profit = sum(s.total_profit() for s in sales)
+    cogs = revenue - gross_profit
     total_expenses = sum(float(e.amount) for e in expenses)
-    net_profit = total_profit - total_expenses
+    net_profit = gross_profit - total_expenses
 
     months = [(y, m) for y in range(today.year - 1, today.year + 1)
               for m in range(1, 13)]
@@ -73,8 +83,9 @@ def monthly():
     return render_template('reports_monthly.html',
                            year=year, month=month,
                            sales=sales, expenses=expenses,
-                           total_revenue=total_revenue,
-                           total_profit=total_profit,
+                           revenue=revenue,
+                           cogs=cogs,
+                           gross_profit=gross_profit,
                            total_expenses=total_expenses,
                            net_profit=net_profit,
                            months=months)
