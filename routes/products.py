@@ -338,6 +338,12 @@ def edit_variant(id):
 @admin_required
 def delete_variant(id):
     v = Variant.query.get_or_404(id)
+    # Delete from old inventory table if it still exists (PostgreSQL migration)
+    try:
+        from sqlalchemy import text
+        db.session.execute(text("DELETE FROM inventory WHERE variant_id = :vid"), {'vid': v.id})
+    except Exception:
+        pass
     InventoryBatch.query.filter_by(variant_id=v.id).delete()
     SaleItem.query.filter_by(variant_id=v.id).delete()
     db.session.delete(v)

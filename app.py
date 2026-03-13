@@ -64,6 +64,12 @@ def _migrate_existing_db():
     from sqlalchemy import text, inspect
     inspector = inspect(db.engine)
 
+    # Drop old inventory table — replaced by inventory_batches
+    if inspector.has_table('inventory'):
+        with db.engine.connect() as conn:
+            conn.execute(text("DROP TABLE inventory CASCADE"))
+            conn.commit()
+
     # Add role column to users if missing
     existing_cols = [c['name'] for c in inspector.get_columns('users')]
     if 'role' not in existing_cols:
