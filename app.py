@@ -59,47 +59,51 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+def _run_sql(sql, params=None):
+    """Run a single DDL statement in its own transaction, ignore errors."""
+    from sqlalchemy import text
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text(sql), params or {})
+            conn.commit()
+    except Exception:
+        pass
+
+
 def _migrate_existing_db():
     """Fix old database structure to match new models."""
-    from sqlalchemy import text, inspect
+    from sqlalchemy import inspect
     inspector = inspect(db.engine)
 
-    with db.engine.connect() as conn:
-        # Drop old inventory table — replaced by inventory_batches
-        if inspector.has_table('inventory'):
-            conn.execute(text("DROP TABLE inventory CASCADE"))
-            conn.commit()
+    # Drop old inventory table — replaced by inventory_batches
+    if inspector.has_table('inventory'):
+        _run_sql("DROP TABLE inventory CASCADE")
 
-        # Fix variants table — remove old cost_price NOT NULL constraint
-        if inspector.has_table('variants'):
-            variant_cols = {c['name']: c for c in inspector.get_columns('variants')}
-            # If cost_price exists on variants, drop it (now lives on batches)
-            if 'cost_price' in variant_cols:
-                conn.execute(text("ALTER TABLE variants DROP COLUMN IF EXISTS cost_price"))
-                conn.commit()
+    # Remove old cost_price column from variants (now lives on batches)
+    if inspector.has_table('variants'):
+        cols = [c['name'] for c in inspector.get_columns('variants')]
+        if 'cost_price' in cols:
+            _run_sql("ALTER TABLE variants DROP COLUMN IF EXISTS cost_price")
 
-        # Add role column to users if missing
-        if inspector.has_table('users'):
-            user_cols = [c['name'] for c in inspector.get_columns('users')]
-            if 'role' not in user_cols:
-                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin'"))
-                conn.commit()
+    # Add role column to users
+    if inspector.has_table('users'):
+        cols = [c['name'] for c in inspector.get_columns('users')]
+        if 'role' not in cols:
+            _run_sql("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin'")
 
-        # Add recorded_by and user_id to sales if missing
-        if inspector.has_table('sales'):
-            sale_cols = [c['name'] for c in inspector.get_columns('sales')]
-            if 'recorded_by' not in sale_cols:
-                conn.execute(text("ALTER TABLE sales ADD COLUMN recorded_by VARCHAR(80)"))
-            if 'user_id' not in sale_cols:
-                conn.execute(text("ALTER TABLE sales ADD COLUMN user_id INTEGER"))
-            conn.commit()
+    # Add recorded_by and user_id to sales
+    if inspector.has_table('sales'):
+        cols = [c['name'] for c in inspector.get_columns('sales')]
+        if 'recorded_by' not in cols:
+            _run_sql("ALTER TABLE sales ADD COLUMN recorded_by VARCHAR(80)")
+        if 'user_id' not in cols:
+            _run_sql("ALTER TABLE sales ADD COLUMN user_id INTEGER")
 
-        # Add batch_id to sale_items if missing
-        if inspector.has_table('sale_items'):
-            si_cols = [c['name'] for c in inspector.get_columns('sale_items')]
-            if 'batch_id' not in si_cols:
-                conn.execute(text("ALTER TABLE sale_items ADD COLUMN batch_id INTEGER"))
-                conn.commit()
+    # Add batch_id to sale_items
+    if inspector.has_table('sale_items'):
+        cols = [c['name'] for c in inspector.get_columns('sale_items')]
+        if 'batch_id' not in cols:
+            _run_sql("ALTER TABLE sale_items ADD COLUMN batch_id INTEGER")
 
     # Add role column to users if missing
     existing_cols = [c['name'] for c in inspector.get_columns('users')]
