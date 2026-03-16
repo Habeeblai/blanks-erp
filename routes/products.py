@@ -8,9 +8,12 @@ from routes.auth import admin_required
 products_bp = Blueprint('products', __name__, url_prefix='/products')
 
 
-def _generate_sku(product, brand, color, size):
-    def slug(s): return s.name.upper().replace(' ', '')[:4]
-    return f"{slug(product)}-{slug(brand)}-{slug(color)}-{slug(size)}"
+def _generate_sku(product):
+    """Generate SKU like TSHIRT-1, TSHIRT-2, CAP-1 etc."""
+    prefix = product.name.upper().replace(' ', '')[:7]
+    # Count existing variants for this product
+    count = Variant.query.filter_by(product_id=product.id).count()
+    return f"{prefix}-{count + 1}"
 
 
 # ---------------------------------------------------------------------------
@@ -248,11 +251,7 @@ def add_variant():
         flash('All fields are required.', 'danger')
         return redirect(url_for('products.variants'))
 
-    sku = _generate_sku(product, brand, color, size)
-
-    if Variant.query.filter_by(sku=sku).first():
-        flash(f'Variant {sku} already exists. Use Restock in Inventory to add more stock at a new price.', 'warning')
-        return redirect(url_for('products.variants'))
+    sku = _generate_sku(product)
 
     variant = Variant(
         product_id=product_id, brand_id=brand_id,
@@ -297,12 +296,9 @@ def bulk_add_variants():
         flash('Product, Brand, and Color are required.', 'danger')
         return redirect(url_for('products.variants'))
 
-    created = skipped = 0
+    created = 0
     for size in sizes:
-        sku = _generate_sku(product, brand, color, size)
-        if Variant.query.filter_by(sku=sku).first():
-            skipped += 1
-            continue
+        sku = _generate_sku(product)
         v = Variant(product_id=product_id, brand_id=brand_id,
                     color_id=color_id, size_id=size.id,
                     sku=sku, selling_price=selling_price)
@@ -315,10 +311,7 @@ def bulk_add_variants():
         created += 1
 
     db.session.commit()
-    msg = f'{created} variant(s) created.'
-    if skipped:
-        msg += f' {skipped} skipped (already exist).'
-    flash(msg, 'success')
+    flash(f'{created} variant(s) created.', 'success')
     return redirect(url_for('products.variants'))
 
 
