@@ -49,6 +49,7 @@ def create_app(config_name=None):
     with app.app_context():
         db.create_all()
         _migrate_existing_db()
+        _migrate_skus()
         _seed_defaults()
 
     return app
@@ -131,7 +132,16 @@ def _migrate_existing_db():
                 conn.commit()
 
 
-def _seed_defaults():
+def _migrate_skus():
+    """One-time migration — rename all existing SKUs to new product-based format."""
+    from models import Variant, Product
+    products = Product.query.all()
+    for product in products:
+        prefix = product.name.upper().replace(' ', '')[:7]
+        variants = Variant.query.filter_by(product_id=product.id).order_by(Variant.id).all()
+        for i, v in enumerate(variants, start=1):
+            v.sku = f"{prefix}-{i}"
+    db.session.commit()
     from models import User, Product, Brand, Color, Size
 
     if not User.query.filter_by(role='admin').first():
