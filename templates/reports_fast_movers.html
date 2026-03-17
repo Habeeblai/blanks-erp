@@ -32,13 +32,13 @@
         {% set i = loop.index0 %}
         <tr>
           <td style="color:var(--accent); font-family:var(--font-mono)">{{ loop.index }}</td>
-          <td class="sku">{{ row.Variant.sku }}</td>
-          <td>{{ row.Variant.display_name() }}</td>
+          <td class="sku">{{ row.variant.sku }}</td>
+          <td>{{ row.variant.display_name() }}</td>
           <td class="num" style="color:var(--warning); font-weight:600">{{ row.units_sold }}</td>
           <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(row.profit) }}</td>
           <td class="num">
-            <span class="badge-stock {% if row.Variant.inventory and row.Variant.inventory.quantity > 10 %}ok{% elif row.Variant.inventory and row.Variant.inventory.quantity > 0 %}warn{% else %}low{% endif %}">
-              {{ row.Variant.inventory.quantity if row.Variant.inventory else 0 }}
+            <span class="badge-stock {% if row.variant.total_stock() > 10 %}ok{% elif row.variant.total_stock() > 0 %}warn{% else %}low{% endif %}">
+              {{ row.variant.total_stock() }}
             </span>
           </td>
         </tr>

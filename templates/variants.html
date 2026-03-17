@@ -166,7 +166,7 @@
     </thead>
     <tbody>
       {% for v in variants.items %}
-      {% set latest_batch = v.batches.order_by('date_added desc').first() %}
+      {% set latest_batch = v.latest_batch() %}
       <tr>
         <td style="font-family:var(--font-mono); font-size:12px">{{ v.sku }}</td>
         <td>{{ v.product.name }}</td>

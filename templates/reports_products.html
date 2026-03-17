@@ -30,8 +30,8 @@
       <tbody>
         {% for row in rows %}
         <tr>
-          <td class="sku">{{ row.Variant.sku }}</td>
-          <td>{{ row.Variant.display_name() }}</td>
+          <td class="sku">{{ row.variant.sku }}</td>
+          <td>{{ row.variant.display_name() }}</td>
           <td class="num">{{ row.units_sold }}</td>
           <td class="num">₦{{ "%.2f"|format(row.revenue) }}</td>
           <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(row.profit) }}</td>

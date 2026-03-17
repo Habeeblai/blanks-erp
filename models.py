@@ -138,6 +138,12 @@ class Variant(db.Model):
         """Batches that still have stock."""
         return [b for b in self.batches if b.quantity > 0]
 
+    def latest_batch(self):
+        """Return most recently added batch."""
+        from sqlalchemy import desc
+        return InventoryBatch.query.filter_by(variant_id=self.id)\
+            .order_by(desc(InventoryBatch.date_added)).first()
+
     def oldest_batch(self):
         """Return oldest batch with stock (FIFO)."""
         for b in self.batches.order_by(InventoryBatch.date_added.asc()):

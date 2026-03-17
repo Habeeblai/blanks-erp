@@ -95,7 +95,7 @@ def monthly():
 @login_required
 @admin_required
 def products():
-    rows = (db.session.query(
+    raw = (db.session.query(
                 Variant,
                 func.sum(SaleItem.quantity).label('units_sold'),
                 func.sum(SaleItem.profit).label('total_profit'),
@@ -106,6 +106,7 @@ def products():
             .order_by(func.sum(SaleItem.profit).desc())
             .all())
 
+    rows = [{'variant': r[0], 'units_sold': r[1], 'profit': float(r[2] or 0), 'revenue': float(r[3] or 0)} for r in raw]
     return render_template('reports_products.html', rows=rows)
 
 
@@ -116,9 +117,10 @@ def fast_movers():
     days = request.args.get('days', 30, type=int)
     since = datetime.utcnow() - timedelta(days=days)
 
-    rows = (db.session.query(
+    raw = (db.session.query(
                 Variant,
                 func.sum(SaleItem.quantity).label('units_sold'),
+                func.sum(SaleItem.profit).label('total_profit'),
             )
             .join(SaleItem, SaleItem.variant_id == Variant.id)
             .join(Sale, Sale.id == SaleItem.sale_id)
@@ -128,6 +130,7 @@ def fast_movers():
             .limit(20)
             .all())
 
+    rows = [{'variant': r[0], 'units_sold': r[1], 'profit': float(r[2] or 0)} for r in raw]
     return render_template('reports_fast_movers.html', rows=rows, days=days)
 
 
