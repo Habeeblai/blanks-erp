@@ -1,84 +1,176 @@
 {% extends 'base.html' %}
-{% block title %}Sales — Blanks ERP{% endblock %}
+{% block title %}Sales — Blanks Store ERP{% endblock %}
 {% block page_title %}Sales History{% endblock %}
 
 {% block content %}
-<div class="d-flex gap-2 mb-3">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <a href="{{ url_for('sales.new_sale') }}" class="erp-btn erp-btn-primary">
     <i class="bi bi-plus-circle"></i> New Sale
   </a>
-</div>
-
-<!-- Date filter -->
-<div class="erp-card mb-3">
-  <form method="GET" class="d-flex gap-2 align-items-end">
-    <div>
-      <label class="erp-label">Filter by Date</label>
-      <input type="date" name="date" class="erp-input" value="{{ date_filter }}" style="width:180px">
-    </div>
-    <button class="erp-btn erp-btn-primary"><i class="bi bi-search"></i> Filter</button>
+  <form method="GET" class="d-flex gap-2">
+    <input type="date" name="date" class="erp-input" value="{{ date_filter }}" style="width:180px">
+    <button class="erp-btn erp-btn-outline"><i class="bi bi-search"></i> Filter</button>
+    {% if date_filter %}
     <a href="{{ url_for('sales.index') }}" class="erp-btn erp-btn-outline">Clear</a>
+    {% endif %}
   </form>
 </div>
 
-<!-- Sales Table -->
 <div class="erp-card">
-  <div class="erp-card-header">
-    <span class="erp-card-title">Sales ({{ pagination.total }})</span>
-  </div>
-  <div class="table-responsive">
-    <table class="erp-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Date</th>
-          <th>Items</th>
-          <th class="num">Revenue</th>
-          <th class="num">Profit</th>
-          <th>Recorded By</th>
-          <th>Notes</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for sale in sales %}
-        <tr>
-          <td class="sku">#{{ sale.id }}</td>
-          <td>{{ sale.date.strftime('%d %b %Y %H:%M') }}</td>
-          <td>
-            {% for item in sale.items %}
-            <div style="font-size:12px; color:var(--text-muted)">
-              {{ item.variant.sku if item.variant else '—' }} × {{ item.quantity }}
-            </div>
-            {% endfor %}
-          </td>
-          <td class="num">₦{{ "%.2f"|format(sale.total_revenue()) }}</td>
-          <td class="num" style="color:var(--success)">₦{{ "%.2f"|format(sale.total_profit()) }}</td>
-          <td style="color:var(--text-muted); font-size:12px">{{ sale.recorded_by or 'admin' }}</td>
-          <td style="color:var(--text-muted); font-size:12px">{{ sale.notes or '—' }}</td>
-          <td>
-            <form method="POST" action="{{ url_for('sales.delete_sale', id=sale.id) }}" onsubmit="return confirm('Delete sale and restore stock?')">
-              <button class="erp-btn erp-btn-danger erp-btn-sm"><i class="bi bi-trash"></i></button>
-            </form>
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="7" style="color:var(--text-muted); text-align:center; padding:24px">No sales found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <table class="erp-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date & Time</th>
+        <th>Items</th>
+        <th>Recorded By</th>
+        <th>Revenue</th>
+        <th>Profit</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sale in sales %}
+      <tr style="cursor:pointer" onclick="loadSaleDetail({{ sale.id }})"
+        title="Click to view full details">
+        <td style="font-family:var(--font-mono); font-size:12px">#{{ sale.id }}</td>
+        <td style="font-size:12px">{{ sale.date.strftime('%d %b %Y %H:%M') }}</td>
+        <td>
+          <span style="background:rgba(99,102,241,0.1); color:var(--accent);
+            padding:2px 8px; border-radius:4px; font-size:12px">
+            {{ sale.items|length }} item{{ 's' if sale.items|length != 1 else '' }}
+          </span>
+        </td>
+        <td style="font-size:12px; color:var(--text-muted)">
+          {{ sale.recorded_by or 'admin' }}
+        </td>
+        <td style="color:var(--success); font-weight:600">
+          ₦{{ "{:,.2f}".format(sale.total_revenue()) }}
+        </td>
+        <td style="color:var(--success)">
+          ₦{{ "{:,.2f}".format(sale.total_profit()) }}
+        </td>
+        <td style="font-size:12px; color:var(--text-muted)">{{ sale.notes or '—' }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('sales.delete_sale', id=sale.id) }}"
+            onsubmit="return confirm('Delete this sale and restore stock?')"
+            onclick="event.stopPropagation()">
+            <button class="erp-btn erp-btn-danger erp-btn-sm">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px">
+          No sales recorded yet.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
   {% if pagination.pages > 1 %}
-  <div class="erp-pagination">
+  <div class="d-flex justify-content-center gap-2 mt-3">
     {% if pagination.has_prev %}
-    <a href="{{ url_for('sales.index', page=pagination.prev_num, date=date_filter) }}">‹ Prev</a>
+    <a href="{{ url_for('sales.index', page=pagination.prev_num, date=date_filter) }}"
+       class="erp-btn erp-btn-outline erp-btn-sm">← Prev</a>
     {% endif %}
-    <span class="current">{{ pagination.page }} / {{ pagination.pages }}</span>
+    <span style="padding:6px 12px; color:var(--text-muted); font-size:13px">
+      Page {{ pagination.page }} / {{ pagination.pages }}
+    </span>
     {% if pagination.has_next %}
-    <a href="{{ url_for('sales.index', page=pagination.next_num, date=date_filter) }}">Next ›</a>
+    <a href="{{ url_for('sales.index', page=pagination.next_num, date=date_filter) }}"
+       class="erp-btn erp-btn-outline erp-btn-sm">Next →</a>
     {% endif %}
   </div>
   {% endif %}
 </div>
+
+<!-- Sale Detail Modal -->
+<div class="modal fade" id="saleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius)">
+      <div class="modal-header" style="border-bottom:1px solid var(--border)">
+        <h5 class="modal-title" style="font-family:var(--font-mono); font-size:14px; color:var(--accent)">
+          <i class="bi bi-receipt me-2"></i>
+          <span id="modal-title">Sale Details</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <div class="text-center py-4" style="color:var(--text-muted)">
+          <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadSaleDetail(saleId) {
+  const modal = new bootstrap.Modal(document.getElementById('saleModal'));
+  document.getElementById('modal-title').textContent = 'Sale #' + saleId;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="text-center py-4" style="color:var(--text-muted)">
+      <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+    </div>`;
+  modal.show();
+
+  fetch('/products/api/sale_detail/' + saleId)
+    .then(r => r.json())
+    .then(d => {
+      let rows = d.items.map(item => `
+        <tr>
+          <td style="font-family:var(--font-mono); font-size:12px">${item.sku}</td>
+          <td>${item.product}</td>
+          <td>${item.brand}</td>
+          <td>${item.color}</td>
+          <td>${item.size}</td>
+          <td style="text-align:center; font-weight:600">${item.quantity}</td>
+          <td>₦${item.selling_price.toFixed(2)}</td>
+          <td style="color:var(--success)">₦${item.profit.toFixed(2)}</td>
+        </tr>`).join('');
+
+      document.getElementById('modal-body').innerHTML = `
+        <div class="mb-3 d-flex gap-3 flex-wrap" style="font-size:13px; color:var(--text-muted)">
+          <span><i class="bi bi-calendar me-1"></i>${d.date}</span>
+          <span><i class="bi bi-person me-1"></i>${d.recorded_by}</span>
+          ${d.notes ? `<span><i class="bi bi-chat me-1"></i>${d.notes}</span>` : ''}
+        </div>
+        <div class="table-responsive">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th>SKU</th><th>Product</th><th>Brand</th>
+                <th>Color</th><th>Size</th><th>Qty</th>
+                <th>Unit Price</th><th>Profit</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div class="mt-3 d-flex justify-content-end gap-4">
+          <div style="text-align:right">
+            <div style="font-size:12px; color:var(--text-muted)">Total Revenue</div>
+            <div style="font-size:18px; font-weight:700; color:var(--success)">
+              ₦${d.total_revenue.toFixed(2)}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px; color:var(--text-muted)">Total Profit</div>
+            <div style="font-size:18px; font-weight:700; color:var(--success)">
+              ₦${d.total_profit.toFixed(2)}
+            </div>
+          </div>
+        </div>`;
+    })
+    .catch(() => {
+      document.getElementById('modal-body').innerHTML =
+        '<p style="color:var(--danger)">Failed to load sale details.</p>';
+    });
+}
+</script>
 {% endblock %}

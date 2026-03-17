@@ -1,6 +1,6 @@
 """Products blueprint — manage products, brands, colors, sizes and variants."""
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required
 from models import db, Product, Brand, Color, Size, Variant, InventoryBatch, SaleItem
 from routes.auth import admin_required
@@ -11,9 +11,18 @@ products_bp = Blueprint('products', __name__, url_prefix='/products')
 def _generate_sku(product):
     """Generate SKU like TSHIRT-1, TSHIRT-2, CAP-1 etc."""
     prefix = product.name.upper().replace(' ', '')[:7]
-    # Count existing variants for this product
-    count = Variant.query.filter_by(product_id=product.id).count()
-    return f"{prefix}-{count + 1}"
+    # Find highest existing number for this product to avoid collisions
+    existing = Variant.query.filter_by(product_id=product.id).all()
+    if not existing:
+        return f"{prefix}-1"
+    # Get all existing numbers for this prefix
+    nums = []
+    for v in existing:
+        parts = v.sku.rsplit('-', 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            nums.append(int(parts[1]))
+    next_num = (max(nums) + 1) if nums else 1
+    return f"{prefix}-{next_num}"
 
 
 # ---------------------------------------------------------------------------
@@ -206,14 +215,31 @@ def variants():
     q = request.args.get('q', '').strip()
     product_id = request.args.get('product_id', type=int)
     brand_id = request.args.get('brand_id', type=int)
+    color_id = request.args.get('color_id', type=int)
+    size_id = request.args.get('size_id', type=int)
 
     query = Variant.query.join(Product).join(Brand).join(Color).join(Size)
+
+    # Powerful search — matches SKU, product name, brand, color, size
     if q:
-        query = query.filter(Variant.sku.ilike(f'%{q}%'))
+        search = f'%{q}%'
+        query = query.filter(
+            db.or_(
+                Variant.sku.ilike(search),
+                Product.name.ilike(search),
+                Brand.name.ilike(search),
+                Color.name.ilike(search),
+                Size.name.ilike(search),
+            )
+        )
     if product_id:
         query = query.filter(Variant.product_id == product_id)
     if brand_id:
         query = query.filter(Variant.brand_id == brand_id)
+    if color_id:
+        query = query.filter(Variant.color_id == color_id)
+    if size_id:
+        query = query.filter(Variant.size_id == size_id)
 
     variants_page = query.order_by(Variant.sku).paginate(
         page=page, per_page=50, error_out=False)
@@ -227,7 +253,9 @@ def variants():
                            variants=variants_page,
                            products=products, brands=brands,
                            colors=colors, sizes=sizes,
-                           q=q, product_id=product_id, brand_id=brand_id)
+                           q=q, product_id=product_id,
+                           brand_id=brand_id, color_id=color_id,
+                           size_id=size_id)
 
 
 @products_bp.route('/variants/add', methods=['POST'])
@@ -252,7 +280,6 @@ def add_variant():
         return redirect(url_for('products.variants'))
 
     sku = _generate_sku(product)
-
     variant = Variant(
         product_id=product_id, brand_id=brand_id,
         color_id=color_id, size_id=size_id,
@@ -261,7 +288,6 @@ def add_variant():
     db.session.add(variant)
     db.session.flush()
 
-    # Create first batch
     if quantity > 0 or cost_price > 0:
         batch = InventoryBatch(
             variant_id=variant.id,
@@ -320,9 +346,23 @@ def bulk_add_variants():
 @admin_required
 def edit_variant(id):
     v = Variant.query.get_or_404(id)
-    v.selling_price = request.form.get('selling_price', v.selling_price, type=float)
+    cost_price = request.form.get('cost_price', type=float)
+    selling_price = request.form.get('selling_price', type=float)
+
+    if selling_price is not None:
+        v.selling_price = selling_price
+
+    # Also update the latest batch prices if they exist
+    latest_batch = InventoryBatch.query.filter_by(variant_id=v.id)\
+        .order_by(InventoryBatch.date_added.desc()).first()
+    if latest_batch:
+        if cost_price is not None:
+            latest_batch.cost_price = cost_price
+        if selling_price is not None:
+            latest_batch.selling_price = selling_price
+
     db.session.commit()
-    flash('Variant selling price updated.', 'success')
+    flash('Variant prices updated.', 'success')
     return redirect(url_for('products.variants'))
 
 
@@ -344,3 +384,36 @@ def delete_variant(id):
     db.session.commit()
     flash('Variant deleted.', 'info')
     return redirect(url_for('products.variants'))
+
+
+# ---------------------------------------------------------------------------
+# AJAX — sale detail for modal
+# ---------------------------------------------------------------------------
+
+@products_bp.route('/api/sale_detail/<int:sale_id>')
+@login_required
+def sale_detail(sale_id):
+    from models import Sale
+    sale = Sale.query.get_or_404(sale_id)
+    items = []
+    for item in sale.items:
+        items.append({
+            'sku': item.variant.sku,
+            'product': item.variant.product.name,
+            'brand': item.variant.brand.name,
+            'color': item.variant.color.name,
+            'size': item.variant.size.name,
+            'quantity': item.quantity,
+            'cost_price': float(item.cost_price_at_sale),
+            'selling_price': float(item.selling_price_at_sale),
+            'profit': float(item.profit),
+        })
+    return jsonify({
+        'id': sale.id,
+        'date': sale.date.strftime('%d %b %Y %H:%M'),
+        'recorded_by': sale.recorded_by or 'admin',
+        'notes': sale.notes or '',
+        'items': items,
+        'total_revenue': sale.total_revenue(),
+        'total_profit': sale.total_profit(),
+    })
