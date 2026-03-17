@@ -106,42 +106,26 @@ def _migrate_existing_db():
         if 'batch_id' not in cols:
             _run_sql("ALTER TABLE sale_items ADD COLUMN batch_id INTEGER")
 
-    # Add role column to users if missing
-    existing_cols = [c['name'] for c in inspector.get_columns('users')]
-    if 'role' not in existing_cols:
-        with db.engine.connect() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'admin'"))
-            conn.commit()
-
-    # Add recorded_by and user_id to sales if missing
-    if inspector.has_table('sales'):
-        sale_cols = [c['name'] for c in inspector.get_columns('sales')]
-        with db.engine.connect() as conn:
-            if 'recorded_by' not in sale_cols:
-                conn.execute(text("ALTER TABLE sales ADD COLUMN recorded_by VARCHAR(80)"))
-            if 'user_id' not in sale_cols:
-                conn.execute(text("ALTER TABLE sales ADD COLUMN user_id INTEGER"))
-            conn.commit()
-
-    # Add batch_id to sale_items if missing
-    if inspector.has_table('sale_items'):
-        si_cols = [c['name'] for c in inspector.get_columns('sale_items')]
-        if 'batch_id' not in si_cols:
-            with db.engine.connect() as conn:
-                conn.execute(text("ALTER TABLE sale_items ADD COLUMN batch_id INTEGER"))
-                conn.commit()
-
 
 def _migrate_skus():
     """One-time migration — rename all existing SKUs to new product-based format."""
     from models import Variant, Product
-    products = Product.query.all()
-    for product in products:
-        prefix = product.name.upper().replace(' ', '')[:7]
-        variants = Variant.query.filter_by(product_id=product.id).order_by(Variant.id).all()
-        for i, v in enumerate(variants, start=1):
-            v.sku = f"{prefix}-{i}"
-    db.session.commit()
+    try:
+        products = Product.query.all()
+        for product in products:
+            prefix = product.name.upper().replace(' ', '')[:7]
+            variants = Variant.query.filter_by(product_id=product.id).order_by(Variant.id).all()
+            for i, v in enumerate(variants, start=1):
+                new_sku = f"{prefix}-{i}"
+                if v.sku != new_sku:
+                    v.sku = new_sku
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
+def _seed_defaults():
+    """Create default admin account and lookup data if the database is empty."""
     from models import User, Product, Brand, Color, Size
 
     if not User.query.filter_by(role='admin').first():
@@ -172,31 +156,3 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-def _seed_defaults():
-    """Create default admin account and lookup data if the database is empty."""
-    from models import User, Product, Brand, Color, Size
-
-    if not User.query.filter_by(role='admin').first():
-        admin = User(username='habeeblai', role='admin')
-        admin.set_password('blanksstore244?')
-        db.session.add(admin)
-
-    if not Product.query.first():
-        for name, cat in [('T-Shirt', 'Tops'), ('Polo Shirt', 'Tops'), ('Cap', 'Headwear')]:
-            db.session.add(Product(name=name, category=cat))
-
-    if not Brand.query.first():
-        for b in ['Gildan', 'Bella+Canvas', 'Next Level', 'Port & Company']:
-            db.session.add(Brand(name=b))
-
-    if not Color.query.first():
-        for c in ['Black', 'White', 'Navy', 'Red', 'Grey', 'Royal Blue']:
-            db.session.add(Color(name=c))
-
-    if not Size.query.first():
-        for s in ['XS', 'S', 'M', 'L', 'XL', 'XXL']:
-            db.session.add(Size(name=s))
-
-    db.session.commit()
