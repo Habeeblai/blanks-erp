@@ -172,3 +172,31 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+def _seed_defaults():
+    """Create default admin account and lookup data if the database is empty."""
+    from models import User, Product, Brand, Color, Size
+
+    if not User.query.filter_by(role='admin').first():
+        admin = User(username='habeeblai', role='admin')
+        admin.set_password('blanksstore244?')
+        db.session.add(admin)
+
+    if not Product.query.first():
+        for name, cat in [('T-Shirt', 'Tops'), ('Polo Shirt', 'Tops'), ('Cap', 'Headwear')]:
+            db.session.add(Product(name=name, category=cat))
+
+    if not Brand.query.first():
+        for b in ['Gildan', 'Bella+Canvas', 'Next Level', 'Port & Company']:
+            db.session.add(Brand(name=b))
+
+    if not Color.query.first():
+        for c in ['Black', 'White', 'Navy', 'Red', 'Grey', 'Royal Blue']:
+            db.session.add(Color(name=c))
+
+    if not Size.query.first():
+        for s in ['XS', 'S', 'M', 'L', 'XL', 'XXL']:
+            db.session.add(Size(name=s))
+
+    db.session.commit()
