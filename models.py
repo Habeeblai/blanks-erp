@@ -121,8 +121,7 @@ class Variant(db.Model):
     selling_price = db.Column(db.Numeric(10, 2), nullable=False, default=0)
 
     batches = db.relationship('InventoryBatch', backref='variant', lazy='dynamic',
-                              cascade='all, delete-orphan',
-                              order_by='InventoryBatch.date_added')
+                              cascade='all, delete-orphan')
     sale_items = db.relationship('SaleItem', backref='variant', lazy='dynamic',
                                  cascade='all, delete-orphan')
 
@@ -140,9 +139,8 @@ class Variant(db.Model):
 
     def latest_batch(self):
         """Return most recently added batch."""
-        from sqlalchemy import desc
         return InventoryBatch.query.filter_by(variant_id=self.id)\
-            .order_by(desc(InventoryBatch.date_added)).first()
+            .order_by(InventoryBatch.id.desc()).first()
 
     def oldest_batch(self):
         """Return oldest batch with stock (FIFO)."""
